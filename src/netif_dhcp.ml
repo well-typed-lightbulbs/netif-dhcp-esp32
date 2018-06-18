@@ -137,13 +137,14 @@ type macaddr = Macaddr.t
 type page_aligned_buffer = Io_page.t
 type buffer = Cstruct.t
 
+(* Use packet for DHCP and retransmit to IP stack if the packet is useless. *)
 let dhcp_packet t buf = 
   match Dhcp_client.input t.dhcp_client buf with 
-  | `Noop -> Lwt.return_unit
+  | `Noop -> Lwt.return_true
   | `Response (s, action) -> begin 
     Netif.write t.netif action >>= function
-    | Error e -> Lwt.return_unit
-    | Ok () -> t.dhcp_client <- s; Lwt.return_unit
+    | Error e -> Lwt.return_false
+    | Ok () -> t.dhcp_client <- s; Lwt.return_false
   end
   | `New_lease (status, lease) ->
     let open Dhcp_wire in
@@ -163,13 +164,18 @@ let dhcp_packet t buf =
       end
     end;
     t.dhcp_client <- status;
-    Lwt.return_unit
+    Lwt.return_false
 
 let rec listen t fn = 
   let listen_aux buffer = 
     match t.status with
     | Disconnected -> Lwt.return_unit
-    | Look_for_IP  -> dhcp_packet t buffer
+    | Look_for_IP  -> 
+      begin
+        dhcp_packet t buffer >>= function 
+          | false -> Lwt.return_unit
+          | true -> fn buffer
+      end
     | IP_obtained  -> fn buffer
   in
   Netif.listen t.netif listen_aux
