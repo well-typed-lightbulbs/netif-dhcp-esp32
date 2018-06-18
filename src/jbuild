@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(library
+ ((name        netif_dhcp)
+  (public_name netif-dhcp)
+  (no_dynlink)
+  (libraries (lwt mirage-net-lwt mirage-time-lwt logs charrua-client mirage-impl wifi))
+  (wrapped false)
+  ))
