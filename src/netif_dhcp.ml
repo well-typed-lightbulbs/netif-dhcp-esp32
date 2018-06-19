@@ -29,6 +29,7 @@ let pp_error = Netif.pp_error
 
 
 let rec get_lease t =
+  Log.info (fun f -> f "DHCPDISCOVER SENT");
   t.status <- Look_for_IP;
   let (client, dhcpdiscover) = Dhcp_client.create (Netif.mac t.netif) in
   t.dhcp_client <- client;
@@ -66,6 +67,7 @@ let wait_for_disconnection () =
 
 (* Lease renewal loop *)
 let rec lease_renewal t = 
+      Log.info (fun f -> f "DHCP: Got a lease");
     let lease = match Dhcp_client.lease t.dhcp_client with
       | Some lease -> lease
       | None -> assert false 
@@ -103,14 +105,17 @@ let rec lease_renewal t =
 
 (* Listen for wifi events to update dhcp lookup status *)
 let rec status_updater t =
+      Log.info (fun f -> f "DHCP: Waiting for connection");
       OS.Event.wait_for_event (Wifi.id_of_event Wifi.STA_connected) 
     >>= fun _ ->
+      Log.info (fun f -> f "DHCP: Looking for IP");
       t.status <- Look_for_IP;
       Lwt.pick [get_lease t; wait_for_disconnection ()] 
     >>= function 
       | true -> lease_renewal t
       | false -> Lwt.return_unit 
     >>= fun _ ->
+      Log.info (fun f -> f "DHCP: Disconnected");
       t.status <- Disconnected;
       status_updater t
 
@@ -166,8 +171,10 @@ let dhcp_packet t buf =
     t.dhcp_client <- status;
     Lwt.return_false
 
-let rec listen t fn = 
+let rec listen t fn =  
+  Log.info (fun f -> f "Netif listen");
   let listen_aux buffer = 
+    Log.info (fun f -> f "PKT input. ");
     match t.status with
     | Disconnected -> Lwt.return_unit
     | Look_for_IP  -> 
