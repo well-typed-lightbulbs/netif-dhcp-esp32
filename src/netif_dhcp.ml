@@ -67,7 +67,7 @@ let wait_for_disconnection () =
 
 (* Lease renewal loop *)
 let rec lease_renewal t = 
-      Log.info (fun f -> f "DHCP: Got a lease");
+    Log.info (fun f -> f "DHCP: Got a lease");
     let lease = match Dhcp_client.lease t.dhcp_client with
       | Some lease -> lease
       | None -> assert false 
@@ -172,9 +172,7 @@ let dhcp_packet t buf =
     Lwt.return_false
 
 let rec listen t fn =  
-  Log.info (fun f -> f "Netif listen");
   let listen_aux buffer = 
-    Log.info (fun f -> f "PKT input. ");
     match t.status with
     | Disconnected -> Lwt.return_unit
     | Look_for_IP  -> 
