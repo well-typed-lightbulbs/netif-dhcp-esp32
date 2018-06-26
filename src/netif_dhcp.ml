@@ -34,7 +34,7 @@ let rec get_lease t =
   let (client, dhcpdiscover) = Dhcp_client.create (Netif.mac t.netif) in
   t.dhcp_client <- client;
   Netif.write t.netif dhcpdiscover >>= function
-    | Error e -> Lwt.return_false
+    | Error e -> assert false
     | Ok () -> 
     Time.sleep_ns sleep_interval >>= fun () ->
     match Dhcp_client.lease t.dhcp_client with 
